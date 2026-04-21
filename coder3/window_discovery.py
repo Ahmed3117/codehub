@@ -30,9 +30,13 @@ class WindowDiscovery:
         """
         if not wm_class:
             return []
+        
+        # Build case-insensitive regex for xdotool
+        regex = "".join(f"[{c.lower()}{c.upper()}]" if c.isalpha() else c for c in wm_class)
+        
         try:
             result = subprocess.run(
-                ["xdotool", "search", "--class", wm_class],
+                ["xdotool", "search", "--class", regex],
                 capture_output=True, text=True, timeout=3
             )
             if result.returncode == 0 and result.stdout.strip():

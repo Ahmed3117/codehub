@@ -138,16 +138,16 @@ class ProcessManager:
         self._xids.pop(session_id, None)
 
     def is_window_alive(self, session_id: str) -> bool:
-        """Check if the editor window for a session still exists using xdotool."""
+        """Check if the editor window for a session still exists using xwininfo."""
         xid = self._xids.get(session_id)
         if xid is None:
             return False
         try:
             result = subprocess.run(
-                ["xdotool", "getwindowname", str(xid)],
+                ["xwininfo", "-id", str(xid)],
                 capture_output=True, text=True, timeout=2
             )
-            return result.returncode == 0 and len(result.stdout.strip()) > 0
+            return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return False
 

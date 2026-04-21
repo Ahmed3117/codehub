@@ -375,7 +375,7 @@ class Coder3App(Gtk.Application):
 
     def _find_session_window_xid(self, session: Session) -> Optional[int]:
         """Locate the current top-level window for a session."""
-        if session.xid and self.window_discovery.get_window_title(session.xid):
+        if session.xid and self.window_discovery._is_window_visible(session.xid):
             return session.xid
 
         editor_info = EDITORS.get(session.editor, EDITORS["vscode"])
@@ -558,6 +558,29 @@ class Coder3App(Gtk.Application):
             session.state = STATE_EXTERNAL
             self.sidebar.update_status(session_id, STATE_EXTERNAL)
             self.headerbar.set_session_info(session.name, f"{editor_info['name']} window")
+            
+            # Start background thread just to discover the window for focusing
+            def discover_external_xid():
+                xid = self.window_discovery.find_new_window(
+                    before_snapshot,
+                    wm_class=wm_class,
+                    project_path=session.project_path,
+                    timeout=VSCODE_WINDOW_WAIT_TIMEOUT,
+                    allow_title_fallback=True,
+                )
+                if xid is None:
+                    xid = self.window_discovery.find_window_by_pid(
+                        pid,
+                        wm_class=wm_class,
+                        project_path=session.project_path,
+                        timeout=5,
+                    )
+                if xid:
+                    session.xid = xid
+                    self.process_mgr.set_xid(session_id, xid)
+                    print(f"[App] Discovered external window for {session_id}: {xid}")
+            
+            threading.Thread(target=discover_external_xid, daemon=True).start()
             return
 
         session.pid = pid
