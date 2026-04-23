@@ -34,6 +34,9 @@ class Session:
     editor: str = "vscode"
     # Custom editor command (used when editor == "custom")
     custom_editor_cmd: str = ""
+    # Per-session notes and plans.  Each item is a dict with keys:
+    #   id (str), text (str), status ("waiting"|"working"|"done"), created_at (str)
+    notes: List[dict] = field(default_factory=list)
 
     def to_dict(self):
         """Serialize to dict for JSON persistence (exclude runtime fields)."""

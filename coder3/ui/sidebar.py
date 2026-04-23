@@ -11,6 +11,7 @@ from coder3.utils.constants import (
     SIDEBAR_WIDTH,
     STATE_IDLE, STATE_STARTING, STATE_DISCOVERING,
     STATE_EMBEDDING, STATE_EMBEDDED, STATE_EXTERNAL, STATE_FAILED, STATE_CLOSED,
+    EDITORS,
 )
 
 
@@ -80,6 +81,12 @@ class SessionRow(Gtk.ListBoxRow):
         self.path_label.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
         vbox.pack_start(self.path_label, False, False, 0)
 
+        editor_display = self._editor_display_name(session)
+        self.editor_label = Gtk.Label(xalign=0)
+        self.editor_label.set_text(editor_display)
+        self.editor_label.get_style_context().add_class("session-editor")
+        vbox.pack_start(self.editor_label, False, False, 0)
+
         self.status_label = Gtk.Label(xalign=0)
         self.status_label.get_style_context().add_class("session-status")
         vbox.pack_start(self.status_label, False, False, 0)
@@ -94,8 +101,16 @@ class SessionRow(Gtk.ListBoxRow):
         self.action_btn.get_style_context().add_class("session-action-btn")
         hbox.pack_end(self.action_btn, False, False, 4)
 
+        # Notes badge — shows count of active (working + waiting) notes
+        self.notes_badge = Gtk.Label()
+        self.notes_badge.get_style_context().add_class("notes-badge")
+        self.notes_badge.set_no_show_all(True)
+        self.notes_badge.set_valign(Gtk.Align.CENTER)
+        hbox.pack_end(self.notes_badge, False, False, 2)
+
         self.add(hbox)
         self.update_status(session.state)
+        self.update_notes_badge(session.notes)
 
         # Callbacks wired by the Sidebar
         self.on_start: Optional[Callable] = None
@@ -142,6 +157,14 @@ class SessionRow(Gtk.ListBoxRow):
             return "~" + path[len(home):]
         return path
 
+    @staticmethod
+    def _editor_display_name(session: Session) -> str:
+        """Return a human-readable editor name for display in the row."""
+        if session.editor == "custom":
+            return session.custom_editor_cmd or "Custom"
+        editor_info = EDITORS.get(session.editor, {})
+        return editor_info.get("name", session.editor.title())
+
     def update_status(self, state: str):
         self.session.state = state
         status_map = {
@@ -181,6 +204,20 @@ class SessionRow(Gtk.ListBoxRow):
             bc.remove_class("btn-play")
             bc.add_class("btn-stop")
 
+    def update_notes_badge(self, notes: list):
+        """Show/hide the active-notes count badge on the row.
+
+        'Active' means status is 'working' or 'waiting' (i.e. not done).
+        The badge is hidden entirely when there are no active notes so it
+        doesn't take up visual space on clean sessions.
+        """
+        active = sum(1 for n in notes if n.get("status") != "done")
+        if active:
+            self.notes_badge.set_text(str(active))
+            self.notes_badge.show()
+        else:
+            self.notes_badge.hide()
+
     def update_session(self, session: Session):
         self.session = session
         self.name_label.set_markup(
@@ -189,6 +226,7 @@ class SessionRow(Gtk.ListBoxRow):
         )
         self.path_label.set_text(self._abbreviate_path(session.project_path))
         self.update_status(session.state)
+        self.update_notes_badge(session.notes)
 
 
 # ──────────────────────────────────────────────────────────────────────

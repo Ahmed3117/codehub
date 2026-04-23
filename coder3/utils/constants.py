@@ -95,12 +95,19 @@ EDITORS = {
         "wm_class": "dev.zed.Zed",
         "embeddable": True,
         "launch_args": ["{path}"],
+        # The `zed` command is a thin CLI launcher that exits immediately after
+        # handing the project off to the long-running server.  The actual
+        # background process is the `zed-editor` binary in libexec/ — that is
+        # what must be targeted when killing all Zed instances.
+        "process_names": ["zed-editor"],
     },
     "sublime": {
         "name": "Sublime Text",
         "command": "subl",
         "wm_class": "sublime_text",
-        "embeddable": True,
+        # Sublime Text does not properly implement XEMBED input focus — embedding
+        # succeeds visually but keyboard/mouse input is broken.  Use external mode.
+        "embeddable": False,
         "launch_args": ["-n", "{path}"],
     },
     "trae": {
@@ -121,14 +128,26 @@ EDITORS = {
         "name": "Terminal",
         "command": "gnome-terminal",
         "wm_class": "gnome-terminal",
-        "embeddable": True,
+        # gnome-terminal does not implement XEMBED — embedding blocks all input.
+        # Use external mode so the terminal window floats and remains interactive.
+        "embeddable": False,
         "launch_args": ["--window", "--working-directory", "{path}"],
     },
     "nautilus": {
-        "name": "File Manager",
+        "name": "File Manager (Nautilus)",
         "command": "nautilus",
         "wm_class": "org.gnome.Nautilus",
-        "embeddable": True,
+        # Nautilus (GTK4) does not support XEMBED at all.  External mode only.
+        "embeddable": False,
+        "launch_args": ["--new-window", "{path}"],
+    },
+    "nemo": {
+        "name": "File Manager (Nemo)",
+        "command": "nemo",
+        "wm_class": "nemo",
+        # Nemo (GTK3) embedding produces a frozen, non-interactive view.
+        # External mode only.
+        "embeddable": False,
         "launch_args": ["--new-window", "{path}"],
     },
     "custom": {

@@ -63,11 +63,23 @@ class HeaderBar(Gtk.HeaderBar):
         menu_btn.set_popup(menu)
         self.pack_end(menu_btn)
 
+        # General Notes button — opens the app-level notes window
+        self.general_notes_btn = Gtk.Button()
+        notes_icon = Gtk.Image.new_from_icon_name(
+            "accessories-text-editor-symbolic", Gtk.IconSize.BUTTON
+        )
+        self.general_notes_btn.set_image(notes_icon)
+        self.general_notes_btn.set_tooltip_text("General Notes (Ctrl+Shift+N)")
+        self.general_notes_btn.get_style_context().add_class("general-notes-btn")
+        self.general_notes_btn.connect("clicked", self._on_general_notes)
+        self.pack_end(self.general_notes_btn)
+
         # Callbacks
         self.on_about = None
         self.on_quit = None
         self.on_sidebar_toggle = None
         self.on_kill_editor_processes = None
+        self.on_general_notes = None
 
         self.sidebar_toggle_btn.connect("clicked", self._on_sidebar_toggle)
         self.kill_editor_btn.connect("clicked", self._on_kill_editor_processes)
@@ -97,3 +109,7 @@ class HeaderBar(Gtk.HeaderBar):
     def _on_kill_editor_processes(self, button):
         if self.on_kill_editor_processes:
             self.on_kill_editor_processes()
+
+    def _on_general_notes(self, button):
+        if self.on_general_notes:
+            self.on_general_notes()

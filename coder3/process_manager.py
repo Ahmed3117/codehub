@@ -239,16 +239,27 @@ class ProcessManager:
         for xid in xids:
             self.terminate_window_owner(xid)
 
-    def terminate_editor_processes(self, command: str):
-        """Terminate all processes whose executable name matches *command*."""
+    def terminate_editor_processes(self, command: str, extra_names: list = None):
+        """Terminate all processes belonging to an editor.
+
+        Matches against *command* (the launch executable name) **and** any
+        names in *extra_names*.  The latter is necessary for editors like Zed
+        whose CLI launcher exits immediately while the real long-running server
+        uses a different binary name (e.g. ``zed-editor`` in libexec/).
+        """
         if not command:
             return
+
+        names_to_kill = {command}
+        if extra_names:
+            names_to_kill.update(extra_names)
 
         for proc in psutil.process_iter(["pid", "name", "cmdline"]):
             try:
                 name = proc.info.get("name") or ""
                 cmdline = proc.info.get("cmdline") or []
-                if name == command or (cmdline and os.path.basename(cmdline[0]) == command):
+                if (name in names_to_kill or
+                        (cmdline and os.path.basename(cmdline[0]) in names_to_kill)):
                     self.terminate_pid_tree(proc.pid)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue

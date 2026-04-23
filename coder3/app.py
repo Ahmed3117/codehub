@@ -25,6 +25,8 @@ from coder3.ui.header_bar import HeaderBar
 from coder3.ui.sidebar import Sidebar, SessionRow, GroupRow
 from coder3.ui.content_area import ContentArea
 from coder3.ui.session_dialog import SessionDialog, GroupDialog
+from coder3.ui.notes_dialog import NotesDialog
+from coder3.app_notes import AppNotesRegistry
 from coder3.utils.config import load_settings, save_settings
 from coder3.utils.constants import (
     APP_NAME, APP_ID,
@@ -53,6 +55,7 @@ class Coder3App(Gtk.Application):
         self.window_discovery = WindowDiscovery()
         self.embedding_mgr = EmbeddingManager()
         self.settings = load_settings()
+        self.app_notes = AppNotesRegistry()
 
         self._active_session_id = None
         self._health_check_id = None
@@ -60,6 +63,10 @@ class Coder3App(Gtk.Application):
         self._launch_tokens: dict[str, int] = {}
         # Saved width used when restoring sidebar after toggle-off
         self._saved_sidebar_width = self.settings.get("sidebar_width", 280)
+        # Tracks open NotesDialogs per session so we don't open duplicates
+        self._notes_dialogs: dict[str, NotesDialog] = {}
+        # General-notes dialog (app-level, not per-session)
+        self._general_notes_dialog: Optional[NotesDialog] = None
 
     def do_activate(self):
         """Called when the application is activated."""
@@ -116,6 +123,7 @@ class Coder3App(Gtk.Application):
         self.headerbar.on_quit = self._on_quit
         self.headerbar.on_sidebar_toggle = self._on_toggle_sidebar
         self.headerbar.on_kill_editor_processes = self._on_kill_editor_processes
+        self.headerbar.on_general_notes = self._on_open_general_notes
         self.window.set_titlebar(self.headerbar)
 
         # ── Main layout — horizontal pane ─────────────────────────────
@@ -202,26 +210,80 @@ class Coder3App(Gtk.Application):
         accel_group.connect(key, mod, Gtk.AccelFlags.VISIBLE,
                            lambda *a: self._on_toggle_sidebar())
 
+        # Ctrl+Shift+N — General Notes
+        key, mod = Gtk.accelerator_parse("<Control><Shift>n")
+        accel_group.connect(key, mod, Gtk.AccelFlags.VISIBLE,
+                           lambda *a: self._on_open_general_notes())
+
     def _start_health_check(self):
         """Periodically check for dead editor windows.
 
         Uses XID-based window liveness checks instead of PID polling,
         because the `code` CLI wrapper exits immediately.
+
+        The actual xwininfo subprocess calls run in a background thread so the
+        GTK main loop is never blocked while waiting for them to complete.  A
+        simple flag prevents a new check from starting before the previous one
+        has finished (avoids piling up threads under load).
         """
+        _checking = [False]
+
         def check():
-            dead = self.process_mgr.check_dead_sessions()
-            for session_id in dead:
-                session = self.registry.get(session_id)
-                if session and session.state not in (STATE_IDLE, STATE_CLOSED):
-                    print(f"[App] Session {session_id} window died, marking as closed")
-                    session.state = STATE_CLOSED
-                    session.pid = None
-                    session.xid = None
-                    self.sidebar.update_status(session_id, STATE_CLOSED)
-                    self.embedding_mgr.unembed_window(session_id)
-            return True  # Keep running
+            if _checking[0]:
+                # Previous check still running — skip this tick
+                return True
+            _checking[0] = True
+
+            def run_in_thread():
+                try:
+                    dead = self.process_mgr.check_dead_sessions()
+                except Exception as e:
+                    print(f"[App] Health check error: {e}")
+                    dead = []
+                finally:
+                    _checking[0] = False
+
+                if dead:
+                    GLib.idle_add(apply_on_main, dead)
+
+            def apply_on_main(dead):
+                for session_id in dead:
+                    try:
+                        self._mark_session_dead(session_id)
+                    except Exception as e:
+                        print(f"[App] Error applying dead session {session_id}: {e}")
+
+            threading.Thread(target=run_in_thread, daemon=True).start()
+            return True  # Keep timer running
 
         self._health_check_id = GLib.timeout_add_seconds(5, check)
+
+    def _mark_session_dead(self, session_id: str):
+        """Mark a session as closed when its window has died.
+
+        Safe to call from the GTK main thread only.
+        """
+        session = self.registry.get(session_id)
+        if session and session.state not in (STATE_IDLE, STATE_CLOSED):
+            print(f"[App] Session {session_id} window died, marking as closed")
+            session.state = STATE_CLOSED
+            session.pid = None
+            session.xid = None
+            self.sidebar.update_status(session_id, STATE_CLOSED)
+            self.embedding_mgr.unembed_window(session_id)
+
+    def _on_session_window_died(self, session_id: str):
+        """Immediate notification from EmbeddingManager when a session's embedded
+        window exits (via the GTK Socket plug-removed signal).
+
+        This fires much faster than waiting for the 5-second health check.
+        Runs on the GTK main thread (called via GLib.idle_add).
+        """
+        try:
+            print(f"[App] Session {session_id}: embedded window exited (plug-removed)")
+            self._mark_session_dead(session_id)
+        except Exception as e:
+            print(f"[App] _on_session_window_died error for {session_id}: {e}")
 
     # =========================================
     # Sidebar toggle
@@ -341,6 +403,52 @@ class Coder3App(Gtk.Application):
                 self._active_session_id = None
                 self.content.show_empty()
                 self.headerbar.set_session_info("")
+            # Close any open notes dialog for this session
+            dlg = self._notes_dialogs.pop(session_id, None)
+            if dlg:
+                dlg.destroy()
+
+    def _on_open_notes(self, session_id: str):
+        """Open (or focus) the Notes & Plans window for a session."""
+        # Re-present if already open
+        existing = self._notes_dialogs.get(session_id)
+        if existing:
+            existing.present()
+            return
+
+        session = self.registry.get(session_id)
+        if not session:
+            return
+
+        def _notes_changed():
+            # Refresh the sidebar row so the notes-count badge stays current.
+            session_now = self.registry.get(session_id)
+            if session_now:
+                self.sidebar.update_session(session_now)
+
+        dlg = NotesDialog(
+            self.window, session,
+            save_fn=lambda: self.registry.update(session),
+            on_notes_changed=_notes_changed,
+        )
+        self._notes_dialogs[session_id] = dlg
+        dlg.connect("destroy", lambda w: self._notes_dialogs.pop(session_id, None))
+
+    def _on_open_general_notes(self):
+        """Open (or focus) the app-level General Notes window."""
+        if self._general_notes_dialog:
+            self._general_notes_dialog.present()
+            return
+        dlg = NotesDialog(
+            self.window,
+            self.app_notes.notes_obj,
+            save_fn=self.app_notes.save,
+        )
+        self._general_notes_dialog = dlg
+        dlg.connect("destroy", self._on_general_notes_closed)
+
+    def _on_general_notes_closed(self, window):
+        self._general_notes_dialog = None
 
     def _on_session_activated(self, listbox, row):
         """Handle double-click / Enter on a session row — start the session."""
@@ -405,7 +513,16 @@ class Coder3App(Gtk.Application):
         return None
 
     def _focus_session_window(self, session_id: str):
-        """Focus the running window for a session, embedded or external."""
+        """Focus the running window for a session, embedded or external.
+
+        For embedded sessions the GTK socket already owns the XID, so we can
+        call focus_embedded() directly on the main thread.
+
+        For external sessions all window-visibility checks go through xwininfo
+        and xdotool (blocking subprocess calls).  Those are dispatched to a
+        daemon thread so the GTK main thread is never stalled.  Results are
+        applied back via GLib.idle_add once the XID is resolved.
+        """
         session = self.registry.get(session_id)
         if not session:
             return False
@@ -414,11 +531,45 @@ class Coder3App(Gtk.Application):
             self.embedding_mgr.focus_embedded(session_id)
             return False
 
-        xid = self._find_session_window_xid(session)
-        if xid:
-            session.xid = xid
-            self.process_mgr.set_xid(session_id, xid)
-            self.embedding_mgr.focus_xid(xid)
+        # Capture what we need before leaving the main thread
+        editor_info = EDITORS.get(session.editor, EDITORS["vscode"])
+        wm_class = editor_info.get("wm_class", "")
+        cached_xid = session.xid
+        project_basename = (
+            os.path.basename(session.project_path.rstrip("/")).lower()
+            if session.project_path else ""
+        )
+
+        def _discover_and_focus():
+            xid = None
+
+            # Fast path: cached XID is still mapped/visible
+            if cached_xid and self.window_discovery._is_window_visible(cached_xid):
+                xid = cached_xid
+            elif wm_class:
+                visible = self.window_discovery.get_visible_main_windows_by_class(wm_class)
+                if project_basename:
+                    for candidate, title in visible.items():
+                        if project_basename in title.lower():
+                            xid = candidate
+                            break
+                if xid is None and len(visible) == 1:
+                    xid = next(iter(visible))
+
+            if not xid:
+                return
+
+            def _apply():
+                session_now = self.registry.get(session_id)
+                if session_now:
+                    session_now.xid = xid
+                    self.process_mgr.set_xid(session_id, xid)
+                self.embedding_mgr.focus_xid(xid)
+                return False
+
+            GLib.idle_add(_apply)
+
+        threading.Thread(target=_discover_and_focus, daemon=True).start()
         return False
 
     def _is_editor_still_open_elsewhere(self, session: Session, exclude_xids: Optional[set[int]] = None) -> bool:
@@ -437,8 +588,8 @@ class Coder3App(Gtk.Application):
         matching_xids = self._find_matching_editor_windows(session)
         tracked_xid = session.xid
 
-        self.process_mgr.terminate(session.id)
         self.embedding_mgr.unembed_window(session.id)
+        self.process_mgr.terminate(session.id)
 
         if kill_editor_if_last_window and tracked_xid and not self._is_editor_still_open_elsewhere(session, {tracked_xid}):
             self.process_mgr.terminate_window_owner(tracked_xid)
@@ -603,28 +754,32 @@ class Coder3App(Gtk.Application):
                              launch_token: Optional[int] = None,
                              allow_title_fallback: bool = True):
         """Background thread: discover the editor window and embed it."""
-        xid = self.window_discovery.find_new_window(
-            before_snapshot,
-            wm_class=wm_class,
-            project_path=project_path,
-            timeout=VSCODE_WINDOW_WAIT_TIMEOUT,
-            allow_title_fallback=allow_title_fallback,
-        )
-
-        if xid is None:
-            # Fallback: PID-based discovery
-            xid = self.window_discovery.find_window_by_pid(
-                pid,
+        try:
+            xid = self.window_discovery.find_new_window(
+                before_snapshot,
                 wm_class=wm_class,
                 project_path=project_path,
-                timeout=5,
+                timeout=VSCODE_WINDOW_WAIT_TIMEOUT,
+                allow_title_fallback=allow_title_fallback,
             )
 
-        if xid is None:
-            GLib.idle_add(self._on_discovery_failed, session_id, launch_token)
-            return
+            if xid is None:
+                # Fallback: PID-based discovery
+                xid = self.window_discovery.find_window_by_pid(
+                    pid,
+                    wm_class=wm_class,
+                    project_path=project_path,
+                    timeout=5,
+                )
 
-        GLib.idle_add(self._do_embed, session_id, xid, launch_token)
+            if xid is None:
+                GLib.idle_add(self._on_discovery_failed, session_id, launch_token)
+                return
+
+            GLib.idle_add(self._do_embed, session_id, xid, launch_token)
+        except Exception as e:
+            print(f"[App] Window discovery thread crashed for session {session_id}: {e}")
+            GLib.idle_add(self._on_discovery_failed, session_id, launch_token)
 
     def _on_discovery_failed(self, session_id: str, launch_token: Optional[int] = None):
         """Called when window discovery times out — fall back to external mode."""
@@ -641,6 +796,65 @@ class Coder3App(Gtk.Application):
         self.headerbar.set_session_info(session.name, "External window")
         print(f"[App] Window discovery failed for session {session_id}, "
               "using external mode")
+
+        # Start a background thread to discover the XID later so that
+        # _focus_session_window can raise the window when the user clicks it.
+        self._start_external_xid_discovery(session_id, session)
+
+    def _start_external_xid_discovery(self, session_id: str, session):
+        """
+        Background thread: locate the window XID for an external session.
+
+        Once the XID is found it is stored in session.xid so that subsequent
+        calls to _focus_session_window can raise the window immediately.
+        """
+        editor_info = EDITORS.get(session.editor, EDITORS["vscode"])
+        wm_class = editor_info.get("wm_class", "")
+        pid = session.pid
+        project_path = session.project_path
+
+        def discover():
+            xid = None
+
+            # Strategy 1: PID tree — works for apps that own their process
+            if pid and wm_class:
+                xid = self.window_discovery.find_window_by_pid(
+                    pid,
+                    wm_class=wm_class,
+                    project_path=project_path,
+                    timeout=8,
+                )
+
+            # Strategy 2: visible window with matching class + title
+            if xid is None and wm_class:
+                visible = self.window_discovery.get_visible_main_windows_by_class(
+                    wm_class)
+                project_basename = (
+                    os.path.basename(project_path.rstrip("/")).lower()
+                    if project_path else ""
+                )
+                if project_basename:
+                    for w_xid, title in visible.items():
+                        if project_basename in title.lower():
+                            xid = w_xid
+                            break
+                if xid is None and len(visible) == 1:
+                    xid = next(iter(visible))
+
+            if xid is None:
+                print(f"[App] External XID discovery gave up for {session_id}")
+                return
+
+            def update():
+                s = self.registry.get(session_id)
+                if s and s.state == STATE_EXTERNAL and s.xid is None:
+                    s.xid = xid
+                    self.process_mgr.set_xid(session_id, xid)
+                    print(f"[App] External XID discovered for {session_id}: {xid}")
+
+            GLib.idle_add(update)
+
+        threading.Thread(target=discover, daemon=True).start()
 
     def _do_embed(self, session_id: str, xid: int, launch_token: Optional[int] = None):
         """Attempt to embed the discovered window (runs on main thread)."""
@@ -672,22 +886,46 @@ class Coder3App(Gtk.Application):
             container = self.embedding_mgr.create_container(session_id)
             self.content.add_session_container(session_id, container)
 
-        success = self.embedding_mgr.embed_window(session_id, xid, container)
+        # embed_window is async — outcome arrives via on_success / on_failure
+        def on_embed_success():
+            try:
+                if not self._is_current_launch_token(session_id, launch_token):
+                    return
+                s = self.registry.get(session_id)
+                if not s:
+                    return
+                s.state = STATE_EMBEDDED
+                self.sidebar.update_status(session_id, STATE_EMBEDDED)
+                self.headerbar.set_session_info(s.name, "Embedded")
+                # Register callback so we hear immediately when the window dies
+                self.embedding_mgr.set_plug_removed_callback(
+                    session_id, self._on_session_window_died)
+                if self._active_session_id == session_id:
+                    self.content.show_session(session_id)
+                    self._schedule_embedded_focus(session_id)
+            except Exception as e:
+                print(f"[App] on_embed_success error for session {session_id}: {e}")
 
-        if success:
-            session.state = STATE_EMBEDDED
-            self.sidebar.update_status(session_id, STATE_EMBEDDED)
-            self.headerbar.set_session_info(session.name, "Embedded")
+        def on_embed_failure():
+            try:
+                if not self._is_current_launch_token(session_id, launch_token):
+                    return
+                s = self.registry.get(session_id)
+                if not s:
+                    return
+                s.state = STATE_EXTERNAL
+                self.sidebar.update_status(session_id, STATE_EXTERNAL)
+                self.headerbar.set_session_info(s.name, "External window")
+                print(f"[App] Embedding failed for session {session_id}, "
+                      "using external mode")
+                # session.xid was set above from the discovered XID — keep it so
+                # _focus_session_window can raise the window directly.
+            except Exception as e:
+                print(f"[App] on_embed_failure error for session {session_id}: {e}")
 
-            if self._active_session_id == session_id:
-                self.content.show_session(session_id)
-                self._schedule_embedded_focus(session_id)
-        else:
-            session.state = STATE_EXTERNAL
-            self.sidebar.update_status(session_id, STATE_EXTERNAL)
-            self.headerbar.set_session_info(session.name, "External window")
-            print(f"[App] Embedding failed for session {session_id}, "
-                  "using external mode")
+        self.embedding_mgr.embed_window(session_id, xid, container,
+                                         on_success=on_embed_success,
+                                         on_failure=on_embed_failure)
 
     def _on_stop_session(self, session_id: str = None):
         """Stop the editor and clean up for a session."""
@@ -720,6 +958,17 @@ class Coder3App(Gtk.Application):
         self.process_mgr.terminate(session_id)
         self.process_mgr.terminate_windows(matching_xids)
         self.embedding_mgr.unembed_window(session_id)
+
+        # Fallback: kill any surviving background processes for this editor.
+        # This is the primary kill path for editors like Zed whose CLI launcher
+        # exits immediately; the real server (e.g. zed-editor) may survive the
+        # window-based termination above if no valid XID was tracked.
+        editor_info = EDITORS.get(session.editor, EDITORS["vscode"])
+        command = editor_info.get("command", "")
+        process_names = editor_info.get("process_names", [])
+        if command or process_names:
+            self.process_mgr.terminate_editor_processes(command, extra_names=process_names)
+
         self.process_mgr.forget(session_id)
         self._set_session_closed(session, "Restarting…")
 
@@ -756,7 +1005,10 @@ class Coder3App(Gtk.Application):
             if session.state == STATE_EMBEDDED:
                 self._schedule_embedded_focus(session_id)
             elif session.state == STATE_EXTERNAL:
-                GLib.timeout_add(80, self._focus_session_window, session_id)
+                # Retry focus at increasing delays — the background XID
+                # discovery thread may still be running on first attempt.
+                for delay in (80, 350, 900, 2000):
+                    GLib.timeout_add(delay, self._focus_session_window, session_id)
 
     def _on_kill_editor_processes(self):
         """Prompt for an editor and kill all of its processes."""
@@ -798,8 +1050,9 @@ class Coder3App(Gtk.Application):
 
         editor_info = EDITORS.get(editor_key, {})
         command = editor_info.get("command", "")
+        process_names = editor_info.get("process_names", [])
 
-        self.process_mgr.terminate_editor_processes(command)
+        self.process_mgr.terminate_editor_processes(command, extra_names=process_names)
 
         for session in self.registry.get_all():
             if session.editor != editor_key:
@@ -850,6 +1103,36 @@ class Coder3App(Gtk.Application):
                 self._show_error("Validation Error", error)
 
         dialog.destroy()
+
+    def _on_start_all_in_group(self, group_id: str):
+        """Start every stopped session in the group.
+
+        Sessions already running (STARTING / DISCOVERING / EMBEDDING /
+        EMBEDDED / EXTERNAL) are left untouched.
+        """
+        stopped = {STATE_IDLE, STATE_CLOSED, STATE_FAILED}
+        for session in self.registry.get_by_group(group_id):
+            if session.state in stopped:
+                self._on_start_session(session.id)
+
+    def _on_force_restart_all_in_group(self, group_id: str):
+        """Force-restart every session in the group.
+
+        Running sessions are killed and relaunched.  Stopped sessions are
+        started fresh.  A small stagger (150 ms between sessions) avoids
+        hammering the window-discovery subsystem simultaneously.
+        """
+        sessions = self.registry.get_by_group(group_id)
+        running = {STATE_STARTING, STATE_DISCOVERING, STATE_EMBEDDING,
+                   STATE_EMBEDDED, STATE_EXTERNAL}
+        stopped = {STATE_IDLE, STATE_CLOSED, STATE_FAILED}
+
+        for i, session in enumerate(sessions):
+            delay = i * 150  # ms
+            if session.state in running:
+                GLib.timeout_add(delay, self._on_force_restart_session, session.id)
+            elif session.state in stopped:
+                GLib.timeout_add(delay, self._on_start_session, session.id)
 
     def _on_remove_group(self, group_id: str):
         """Remove a group after confirmation; its sessions become ungrouped."""
@@ -951,6 +1234,16 @@ class Coder3App(Gtk.Application):
             widget.select_row(row)
             menu = Gtk.Menu()
 
+            run_all_item = Gtk.MenuItem(label="▶  Run All Sessions")
+            run_all_item.connect("activate", lambda w: self._on_start_all_in_group(group_id))
+            menu.append(run_all_item)
+
+            restart_all_item = Gtk.MenuItem(label="↺  Force Restart All")
+            restart_all_item.connect("activate", lambda w: self._on_force_restart_all_in_group(group_id))
+            menu.append(restart_all_item)
+
+            menu.append(Gtk.SeparatorMenuItem())
+
             edit_item = Gtk.MenuItem(label="✎  Edit Group")
             edit_item.connect("activate", lambda w: self._on_edit_group(group_id))
             menu.append(edit_item)
@@ -1012,6 +1305,10 @@ class Coder3App(Gtk.Application):
         move_item = Gtk.MenuItem(label="↗  Move to Group")
         move_item.set_submenu(move_menu)
         menu.append(move_item)
+
+        notes_item = Gtk.MenuItem(label="📋  Notes & Plans")
+        notes_item.connect("activate", lambda w: self._on_open_notes(session_id))
+        menu.append(notes_item)
 
         remove_item = Gtk.MenuItem(label="✖  Remove Session")
         remove_item.connect("activate", lambda w: self._on_remove_session(session_id))

@@ -227,15 +227,22 @@ class WindowDiscovery:
 
     def _is_main_window(self, xid: int, wm_class: str = "code") -> bool:
         """Check if a window is a main editor window (not a tooltip/helper)."""
+        # Protect against root windows or dummy X11 IDs
+        if xid <= 1000 or (hasattr(self, '_root') and xid == self._root.id):
+            return False
+            
         try:
             window = self._display.create_resource_object("window", xid)
             wc = window.get_wm_class()
-            if wc:
-                class_str = " ".join(wc).lower()
-                # Accept if wm_class substring is found in any part
-                check = wm_class.lower().split(".")[-1]  # e.g. "nautilus" from "org.gnome.nautilus"
-                if check not in class_str and wm_class.lower() not in class_str:
-                    return False
+            if not wc:
+                return False  # Main app windows must have a WM_CLASS
+                
+            class_str = " ".join(wc).lower()
+            # Accept if wm_class substring is found in any part
+            check = wm_class.lower().split(".")[-1]  # e.g. "nautilus" from "org.gnome.nautilus"
+            if check not in class_str and wm_class.lower() not in class_str:
+                return False
+                
             geom = window.get_geometry()
             return geom.width > 200 and geom.height > 200
         except Exception:
