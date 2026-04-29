@@ -158,3 +158,91 @@ EDITORS = {
         "launch_args": ["{path}"],
     },
 }
+
+# Workspace app definitions — general-purpose apps that can be launched inside
+# a session workspace alongside the editor.  Unlike EDITORS, these do not open
+# the project folder by default (though {path} can be used in launch_args).
+#
+# Each entry has:
+#   name           : display name shown in the app bar / add-app dialog
+#   command        : executable name (must be on PATH)
+#   wm_class       : X11 WM_CLASS used for window discovery
+#   launch_args    : list of CLI args; {path} is replaced with session project path
+#   icon           : emoji/symbol for the app bar tab
+#   isolation_args : extra CLI args appended to force a separate instance per
+#                    session.  {session_id} is replaced with the session ID.
+#                    Typically this sets a unique user-data-dir / profile so
+#                    single-instance apps (Chrome, Postman, …) don't steal
+#                    each other's windows.
+APPS = {
+    "postman": {
+        "name": "Postman",
+        "command": "postman",
+        "wm_class": "postman",
+        "launch_args": [],
+        "icon": "📮",
+        # Postman (Electron) respects --user-data-dir for process isolation
+        "isolation_args": ["--user-data-dir=/tmp/coder3-postman-{session_id}"],
+    },
+    "chrome": {
+        "name": "Google Chrome",
+        "command": "google-chrome",
+        "wm_class": "google-chrome",
+        "launch_args": ["--new-window"],
+        "icon": "🌐",
+        # Separate user-data-dir forces a fully isolated Chrome process
+        "isolation_args": ["--user-data-dir=/tmp/coder3-chrome-{session_id}"],
+    },
+    "firefox": {
+        "name": "Firefox",
+        "command": "firefox",
+        "wm_class": "Navigator",
+        "launch_args": ["--new-window"],
+        "icon": "🦊",
+        # -no-remote prevents connecting to an existing instance;
+        # -profile gives it an isolated profile directory.
+        "isolation_args": ["-no-remote", "-profile", "/tmp/coder3-firefox-{session_id}"],
+    },
+    "insomnia": {
+        "name": "Insomnia",
+        "command": "insomnia",
+        "wm_class": "insomnia",
+        "launch_args": [],
+        "icon": "🌙",
+        "isolation_args": ["--user-data-dir=/tmp/coder3-insomnia-{session_id}"],
+    },
+    "dbeaver": {
+        "name": "DBeaver",
+        "command": "dbeaver",
+        "wm_class": "DBeaver",
+        "launch_args": [],
+        "icon": "🗄",
+        "isolation_args": [],
+    },
+    "terminal": {
+        "name": "Terminal",
+        "command": "gnome-terminal",
+        "wm_class": "gnome-terminal",
+        "launch_args": ["--window", "--working-directory", "{path}"],
+        "icon": "⬛",
+        # gnome-terminal natively supports multiple windows per invocation
+        "isolation_args": [],
+    },
+    "file_manager": {
+        "name": "File Manager",
+        "command": "nemo",
+        "wm_class": "nemo",
+        "launch_args": ["--new-window", "{path}"],
+        "icon": "📁",
+        "isolation_args": [],
+    },
+    "custom": {
+        "name": "Custom App",
+        "command": "",
+        "wm_class": "",
+        "launch_args": [],
+        "icon": "🔧",
+        "isolation_args": [],
+    },
+}
+

@@ -37,6 +37,10 @@ class Session:
     # Per-session notes and plans.  Each item is a dict with keys:
     #   id (str), text (str), status ("waiting"|"working"|"done"), created_at (str)
     notes: List[dict] = field(default_factory=list)
+    # Workspace apps — additional applications opened in this session (serialized
+    # SessionApp dicts).  The editor itself is NOT stored here; it is implicit.
+    apps: List[dict] = field(default_factory=list)
+
 
     def to_dict(self):
         """Serialize to dict for JSON persistence (exclude runtime fields)."""

@@ -1,4 +1,7 @@
-"""Content area — main embedding container with empty state."""
+"""Content area — main embedding container with empty state.
+
+Updated to work with SessionWorkspace widgets for multi-app sessions.
+"""
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -7,10 +10,10 @@ from gi.repository import Gtk, Gdk, GLib, Pango
 
 class ContentArea(Gtk.Box):
     """
-    Main content area that holds embedded VS Code windows.
+    Main content area that holds session workspaces.
     
     Shows an empty state when no session is active,
-    and switches between session containers when sessions are selected.
+    and switches between session workspaces when sessions are selected.
     """
 
     def __init__(self):
@@ -19,7 +22,7 @@ class ContentArea(Gtk.Box):
         self.set_vexpand(True)
         self.get_style_context().add_class("content-area")
 
-        # Stack for switching between empty state and session containers
+        # Stack for switching between empty state and session workspaces
         self.stack = Gtk.Stack()
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.stack.set_transition_duration(200)
@@ -88,12 +91,16 @@ class ContentArea(Gtk.Box):
         if self.on_new_session:
             self.on_new_session()
 
+    # ------------------------------------------------------------------
+    # Session container management (legacy single-container API)
+    # ------------------------------------------------------------------
+
     def add_session_container(self, session_id: str, container: Gtk.Widget):
-        """Add a session container to the content stack."""
+        """Add a session container (or workspace) to the content stack."""
         self.stack.add_named(container, session_id)
 
     def show_session(self, session_id: str):
-        """Switch to showing a session's container."""
+        """Switch to showing a session's workspace/container."""
         self._active_session_id = session_id
         self.stack.set_visible_child_name(session_id)
 

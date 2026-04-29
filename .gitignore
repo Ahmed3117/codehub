@@ -4,3 +4,9 @@ __pycache__/
 .env
 venv/
 *.png
+
+# Build artifacts — do not commit
+dist/
+build/
+*.egg-info/
+*.egg

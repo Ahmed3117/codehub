@@ -242,6 +242,103 @@ headerbar.titlebar button.destructive-action:hover {
     background-color: #1a1b26;
 }
 
+/* ============================================
+   Session Workspace & App Bar
+   ============================================ */
+
+.session-workspace {
+    background-color: #1a1b26;
+}
+
+.session-app-bar {
+    background: linear-gradient(to bottom, #1e2030, #1a1b26);
+    border-bottom: 1px solid #292e42;
+    min-height: 36px;
+    padding: 0 4px;
+}
+
+.session-tabs-box {
+    padding: 4px 0;
+}
+
+/* Individual app tab */
+.app-tab {
+    background: transparent;
+    border-radius: 6px;
+    padding: 0;
+    margin: 2px 1px;
+    transition: all 150ms ease;
+}
+
+.app-tab:hover {
+    background: rgba(122, 162, 247, 0.1);
+}
+
+.app-tab.app-tab-active {
+    background: linear-gradient(135deg, rgba(122, 162, 247, 0.2), rgba(125, 207, 255, 0.1));
+    border-bottom: 2px solid #7aa2f7;
+}
+
+.app-tab-icon {
+    font-size: 13px;
+}
+
+.app-tab-name {
+    color: #565f89;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.app-tab.app-tab-active .app-tab-name {
+    color: #c0caf5;
+}
+
+.app-tab:hover .app-tab-name {
+    color: #c0caf5;
+}
+
+.app-tab-status {
+    font-size: 8px;
+    color: #565f89;
+}
+
+.app-tab-close {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: #3b4261;
+    font-size: 14px;
+    min-width: 18px;
+    min-height: 18px;
+    padding: 0;
+    transition: all 150ms ease;
+}
+
+.app-tab-close:hover {
+    background: rgba(247, 118, 142, 0.2);
+    color: #f7768e;
+}
+
+/* Add App button */
+.add-app-btn {
+    background: transparent;
+    border: 1px dashed #292e42;
+    border-radius: 6px;
+    color: #3b4261;
+    font-size: 16px;
+    min-width: 32px;
+    min-height: 28px;
+    padding: 0 8px;
+    margin: 4px 0;
+    transition: all 150ms ease;
+}
+
+.add-app-btn:hover {
+    background: rgba(122, 162, 247, 0.1);
+    border-color: #7aa2f7;
+    color: #7aa2f7;
+}
+
 /* Empty state */
 .empty-state {
     background-color: #1a1b26;

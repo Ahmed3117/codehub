@@ -1,3 +1,7 @@
 PyGObject>=3.42.0
 python-xlib>=0.33
 psutil>=5.9.0
+
+
+
+
