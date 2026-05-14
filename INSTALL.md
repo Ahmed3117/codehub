@@ -1,8 +1,19 @@
-# Coder3 — Installation Guide
+# CodeHub — Installation Guide
 
-Coder3 is a session manager for code editors (VS Code, Cursor, Zed, etc.) with embedded window support on Linux/X11.
+CodeHub is a session manager for code editors (VS Code, Cursor, Zed, etc.) with embedded window support on Linux/X11.
 
 ---
+
+## 🚀 Quick Install (Debian/Ubuntu/Mint)
+
+If you have the `.deb` file, this is the easiest way to install CodeHub with all its dependencies:
+
+```sh
+sudo apt update
+sudo apt install ./codehub_0.1.1_amd64.deb
+```
+
+After installation, you can launch **CodeHub** from your application menu.
 
 ## Requirements
 
@@ -33,24 +44,24 @@ sudo pacman -S python-gobject gtk3
 
 ---
 
-## Step 2 — Install Coder3 from the wheel file
+## Step 2 — Install CodeHub from the wheel file
 
-You will receive a file named `coder3-0.1.0-py3-none-any.whl`. Run:
+You will receive a file named `codehub-0.1.1-py3-none-any.whl`. Run:
 
 ```sh
-pip install --user coder3-0.1.0-py3-none-any.whl
+pip install --user codehub-0.1.1-py3-none-any.whl
 ```
 
 > If your system blocks pip (externally-managed environment), add `--break-system-packages`:
 > ```sh
-> pip install --user --break-system-packages coder3-0.1.0-py3-none-any.whl
+> pip install --user --break-system-packages codehub-0.1.1-py3-none-any.whl
 > ```
 
 ---
 
 ## Step 3 — Make sure `~/.local/bin` is on your PATH
 
-After a user install, the `coder3` command lands in `~/.local/bin`. Check:
+After a user install, the `codehub` command lands in `~/.local/bin`. Check:
 
 ```sh
 echo $PATH | grep -o "$HOME/.local/bin"
@@ -67,28 +78,28 @@ export PATH="$HOME/.local/bin:$PATH"
 ## Step 4 — Run the app
 
 ```sh
-coder3
+codehub
 ```
 
 Or alternatively:
 
 ```sh
-python3 -m coder3
+python3 -m codehub
 ```
 
 ---
 
 ## Optional — Add a desktop menu entry
 
-To make Coder3 appear in your application menu (e.g. in the Start Menu / Activities):
+To make CodeHub appear in your application menu (e.g. in the Start Menu / Activities):
 
 ```sh
 mkdir -p ~/.local/share/applications
-cat > ~/.local/share/applications/coder3.desktop << 'EOF'
+cat > ~/.local/share/applications/codehub.desktop << 'EOF'
 [Desktop Entry]
-Name=Coder3
+Name=CodeHub
 Comment=Session manager for code editors
-Exec=coder3
+Exec=codehub
 Icon=utilities-terminal
 Terminal=false
 Type=Application
@@ -102,21 +113,21 @@ update-desktop-database ~/.local/share/applications
 ## Uninstalling
 
 ```sh
-pip uninstall coder3
+pip uninstall codehub
 ```
 
 ---
 
 ## Troubleshooting
 
-**`coder3: command not found`**
+**`codehub: command not found`**
 → `~/.local/bin` is not on your PATH. See Step 3.
 
 **`ModuleNotFoundError: No module named 'gi'`**
 → GTK3 system libraries are missing. Repeat Step 1.
 
 **App opens but windows do not embed**
-→ You may be running Wayland. Coder3 requires Xorg (X11). Log out and choose an Xorg session at the login screen.
+→ You may be running Wayland. CodeHub requires Xorg (X11). Log out and choose an Xorg session at the login screen.
 
 **`error: externally-managed-environment` from pip**
 → Add `--break-system-packages` to the pip command (see Step 2 note).
@@ -131,12 +142,12 @@ pip uninstall coder3
 # One-time: install the build tool
 pip install build --break-system-packages
 
-# Build (creates dist/coder3-0.1.0-py3-none-any.whl)
+# Build (creates dist/codehub-0.1.1-py3-none-any.whl)
 python3 -m build
 
 # Or use the Makefile shortcut
 make build
 ```
 
-The file to share with others is `dist/coder3-0.1.0-py3-none-any.whl`.  
+The file to share with others is `dist/codehub-0.1.1-py3-none-any.whl`.  
 The `dist/` and `build/` directories are excluded from git via `.gitignore`.

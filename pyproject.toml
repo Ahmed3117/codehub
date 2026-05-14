@@ -3,8 +3,8 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "coder3"
-version = "0.1.0"
+name = "codehub"
+version = "0.1.4"
 description = "Session manager for code editors with embedded window support"
 readme = "README.md"
 license = "MIT"
@@ -21,10 +21,10 @@ dependencies = [
 ]
 
 [project.scripts]
-coder3 = "coder3.app:main"
+codehub = "codehub.app:main"
 
 [tool.setuptools.packages.find]
-include = ["coder3*"]
+include = ["codehub*"]
 
 [tool.setuptools.package-data]
-"coder3.ui" = ["*.css"]
+"codehub.ui" = ["*.css"]

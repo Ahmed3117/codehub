@@ -1,14 +1,18 @@
-.PHONY: build install install-user dev clean desktop-install
+.PHONY: build install install-user dev clean desktop-install deb
+
+# ── Debian Package ──────────────────────────────────────────────────────────
+deb:
+	bash scripts/create_deb.sh
 
 # ── Build ────────────────────────────────────────────────────────────────────
 # Requires: pip install build
-# Produces: dist/coder3-*.whl  and  dist/coder3-*.tar.gz
+# Produces: dist/codehub-*.whl  and  dist/codehub-*.tar.gz
 build:
 	python -m build
 
 # ── Install ──────────────────────────────────────────────────────────────────
 # Install for current user only (no sudo needed).
-# After this, the 'coder3' command is available in ~/.local/bin/
+# After this, the 'codehub' command is available in ~/.local/bin/
 install-user: build
 	pip install --user --force-reinstall dist/*.whl
 
@@ -21,14 +25,14 @@ dev:
 	pip install --user -e .
 
 # ── Desktop integration ───────────────────────────────────────────────────────
-# Copy the .desktop entry so Coder3 appears in the application menu.
+# Copy the .desktop entry so CodeHub appears in the application menu.
 desktop-install:
 	@mkdir -p ~/.local/share/applications
-	@printf '[Desktop Entry]\nName=Coder3\nComment=Session manager for code editors\nExec=coder3\nIcon=utilities-terminal\nTerminal=false\nType=Application\nCategories=Development;\n' \
-		> ~/.local/share/applications/coder3.desktop
-	@echo "Desktop entry installed → ~/.local/share/applications/coder3.desktop"
+	@printf '[Desktop Entry]\nName=CodeHub\nComment=Session manager for code editors\nExec=codehub\nIcon=utilities-terminal\nTerminal=false\nType=Application\nCategories=Development;\n' \
+		> ~/.local/share/applications/codehub.desktop
+	@echo "Desktop entry installed → ~/.local/share/applications/codehub.desktop"
 	@update-desktop-database ~/.local/share/applications 2>/dev/null || true
 
 # ── Clean ─────────────────────────────────────────────────────────────────────
 clean:
-	rm -rf dist/ build/ *.egg-info coder3/*.egg-info
+	rm -rf dist/ build/ *.egg-info codehub/*.egg-info

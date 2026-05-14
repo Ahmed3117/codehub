@@ -1,0 +1,1279 @@
+/* CodeHub — GTK3 CSS Theme (Modern Pro) */
+
+@define-color bg_dark #0a0b10;
+@define-color bg_main #0d0f17;
+@define-color bg_light #1a1b26;
+@define-color accent #7aa2f7;
+@define-color secondary #bb9af7;
+@define-color tertiary #7dcfff;
+@define-color success #9ece6a;
+@define-color warning #e0af68;
+@define-color danger #f7768e;
+@define-color text_main #c0caf5;
+@define-color text_dim #7982a9;
+@define-color border_color rgba(122, 162, 247, 0.2);
+
+* {
+    font-family: "Outfit", "Inter", "Cantarell", sans-serif;
+}
+
+/* ============================================
+   Main Window
+   ============================================ */
+
+.main-window {
+    background-color: @bg_main;
+    color: @text_main;
+}
+
+/* ============================================
+   Header Bar
+   ============================================ */
+
+headerbar.titlebar {
+    background-color: #12141d;
+    background-image: none;
+    border-bottom: 1px solid @border_color;
+    padding: 4px 10px;
+    min-height: 42px;
+}
+
+headerbar.titlebar .title {
+    color: @secondary;
+    font-weight: 900;
+    font-size: 14px;
+}
+
+headerbar.titlebar .subtitle {
+    color: @accent;
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.9;
+}
+
+headerbar.titlebar button {
+    background-color: rgba(41, 46, 66, 0.3);
+    border: 1px solid rgba(122, 162, 247, 0.15);
+    border-radius: 7px;
+    color: @text_main;
+    padding: 3px 9px;
+    min-height: 28px;
+    margin: 0 2px;
+}
+
+headerbar.titlebar button:hover {
+    background-color: rgba(122, 162, 247, 0.15);
+    border-color: @accent;
+}
+
+headerbar.titlebar button.suggested-action {
+    background-color: @accent;
+    background-image: linear-gradient(135deg, @accent, @secondary);
+    color: #0a0b10;
+    font-weight: 800;
+    border: none;
+}
+
+headerbar.titlebar button.suggested-action:hover {
+    background-color: @tertiary;
+    background-image: linear-gradient(135deg, @tertiary, #c6abff);
+}
+
+headerbar.titlebar button.destructive-action {
+    background-color: @danger;
+    background-image: linear-gradient(135deg, @danger, #ff8fa3);
+    color: #0a0b10;
+    border: none;
+}
+
+headerbar.titlebar button.destructive-action:hover {
+    background-color: #ff9e9e;
+    background-image: linear-gradient(135deg, #ff9e9e, #ffb3b3);
+}
+
+/* ============================================
+   Sidebar
+   ============================================ */
+
+.sidebar {
+    background-color: @bg_main;
+    background-image: none;
+    border-right: 1px solid @border_color;
+}
+
+.sidebar-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(122, 162, 247, 0.1);
+}
+
+.sidebar-title {
+    color: @accent;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.sidebar-count {
+    background-color: rgba(122, 162, 247, 0.15);
+    color: @accent;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(122, 162, 247, 0.2);
+}
+
+/* Session list */
+.session-list {
+    background-color: transparent;
+    padding: 6px;
+}
+
+.session-list row {
+    background-color: transparent;
+    border-radius: 8px;
+    padding: 0;
+    margin: 3px 0;
+    border: 1px solid transparent;
+}
+
+.session-list row:hover {
+    background-color: rgba(31, 34, 51, 0.4);
+}
+
+.session-list row:selected {
+    background-color: rgba(122, 162, 247, 0.1);
+    background-image: none;
+    border: 1px solid rgba(122, 162, 247, 0.3);
+}
+
+/* Session item */
+.session-item {
+    padding: 8px 10px;
+    border-radius: 8px;
+}
+
+.session-indicator {
+    min-width: 4px;
+    min-height: 34px;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+.session-name {
+    color: @text_main;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.session-path {
+    color: @text_dim;
+    font-size: 10px;
+    margin-top: 2px;
+    font-family: monospace;
+}
+
+.session-editor {
+    color: @accent;
+    font-size: 10px;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+/* Session action buttons (tasks, plans, notes, details) */
+.session-tasks-btn,
+.session-plans-btn,
+.session-notes-btn,
+.session-details-btn {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: @text_dim;
+    font-size: 12px;
+    min-width: 26px;
+    min-height: 26px;
+    padding: 0;
+    transition: all 200ms ease;
+}
+
+.session-tasks-btn:hover,
+.session-plans-btn:hover,
+.session-notes-btn:hover,
+.session-details-btn:hover {
+    background: rgba(122, 162, 247, 0.15);
+    color: @text_main;
+}
+
+.session-action-box {
+    opacity: 0;
+    transition: opacity 250ms ease-in-out;
+}
+
+.session-row:hover .session-action-box,
+.session-item:hover .session-action-box {
+    opacity: 1;
+}
+
+/* Notes count badge */
+.notes-badge {
+    background: rgba(224, 175, 104, 0.15);
+    color: @warning;
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 800;
+    min-width: 20px;
+    border: 1px solid rgba(224, 175, 104, 0.3);
+}
+
+.session-status {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 14px;
+    margin-top: 8px;
+    letter-spacing: 0.8px;
+}
+
+.status-idle {
+    background: rgba(86, 95, 137, 0.15);
+    color: #8994c5;
+    border: 1px solid rgba(86, 95, 137, 0.25);
+}
+
+.status-starting, .status-discovering {
+    background: rgba(224, 175, 104, 0.15);
+    color: @warning;
+    border: 1px solid rgba(224, 175, 104, 0.35);
+    text-shadow: 0 0 10px rgba(224, 175, 104, 0.4);
+}
+
+.status-embedded {
+    background: rgba(158, 206, 106, 0.18);
+    color: @success;
+    border: 1px solid rgba(158, 206, 106, 0.45);
+    box-shadow: 0 0 15px rgba(158, 206, 106, 0.2);
+}
+
+.status-external {
+    background: rgba(125, 207, 255, 0.18);
+    color: @tertiary;
+    border: 1px solid rgba(125, 207, 255, 0.45);
+    box-shadow: 0 0 15px rgba(125, 207, 255, 0.2);
+}
+
+.status-failed {
+    background: rgba(247, 118, 142, 0.2);
+    color: @danger;
+    border: 1px solid rgba(247, 118, 142, 0.5);
+    box-shadow: 0 0 15px rgba(247, 118, 142, 0.2);
+}
+
+/* Session details popover */
+.details-popover {
+    background-color: rgba(13, 15, 23, 0.98);
+    border: 1px solid @border_color;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(122, 162, 247, 0.1);
+    padding: 4px;
+}
+
+.details-title {
+    color: @secondary;
+    font-weight: 900;
+    font-size: 16px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-shadow: 0 0 10px rgba(187, 154, 247, 0.2);
+}
+
+.details-label {
+    color: @text_dim;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+}
+
+.details-value {
+    color: @text_main;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+.details-app-row {
+    background: rgba(36, 40, 59, 0.4);
+    border: 1px solid rgba(122, 162, 247, 0.1);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+}
+
+.details-app-row:hover {
+    background: rgba(41, 46, 66, 0.7);
+    border-color: rgba(122, 162, 247, 0.3);
+}
+
+.details-app-icon {
+    font-size: 18px;
+    margin-right: 14px;
+}
+
+.details-app-name {
+    color: @text_main;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.details-app-status {
+    font-size: 10px;
+    font-weight: 900;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: rgba(122, 162, 247, 0.12);
+    color: @accent;
+    border: 1px solid rgba(122, 162, 247, 0.2);
+}
+
+/* Session action buttons (play/stop) */
+.session-action-btn {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: @text_dim;
+    font-size: 13px;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
+    transition: all 250ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.session-action-btn:hover {
+    background: rgba(122, 162, 247, 0.15);
+    color: @text_main;
+    box-shadow: none;
+}
+
+.session-action-btn.btn-play:hover {
+    background: rgba(158, 206, 106, 0.2);
+    color: @success;
+    box-shadow: none;
+}
+
+.session-action-btn.btn-stop:hover {
+    background: rgba(247, 118, 142, 0.2);
+    color: @danger;
+    box-shadow: none;
+}
+
+/* ============================================
+   Content Area
+   ============================================ */
+
+.content-area {
+    background-color: @bg_main;
+}
+
+.embed-container {
+    background-color: @bg_dark;
+}
+
+/* ============================================
+   Session Workspace & App Bar
+   ============================================ */
+
+.session-workspace {
+    background-color: @bg_dark;
+}
+
+.session-app-bar {
+    background: #11131b;
+    border-bottom: 1px solid @border_color;
+    min-height: 36px;
+    padding: 2px 8px;
+    box-shadow: none;
+}
+
+.session-tabs-box {
+    padding: 4px 0;
+}
+
+/* Individual app tab */
+.app-tab {
+    background: rgba(36, 40, 59, 0.3);
+    border-radius: 7px;
+    padding: 2px 7px;
+    margin: 0 2px;
+    border: 1px solid rgba(122, 162, 247, 0.1);
+    transition: all 300ms ease;
+}
+
+.app-tab:hover {
+    background: rgba(122, 162, 247, 0.1);
+    border-color: rgba(122, 162, 247, 0.25);
+}
+
+.app-tab.app-tab-active {
+    background: #202437;
+    border: 1px solid rgba(122, 162, 247, 0.4);
+    border-bottom: 2px solid @accent;
+    box-shadow: none;
+}
+
+.app-tab-icon {
+    font-size: 14px;
+    margin-right: 4px;
+}
+
+.app-tab-name {
+    color: @text_dim;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.app-tab.app-tab-active .app-tab-name {
+    color: @text_main;
+    text-shadow: none;
+}
+
+.app-tab:hover .app-tab-name {
+    color: @text_main;
+}
+
+.app-tab-status {
+    font-size: 10px;
+    color: @accent;
+    margin-left: 4px;
+    font-weight: 900;
+    opacity: 0.8;
+}
+
+.app-tab-close {
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    color: @text_dim;
+    font-size: 12px;
+    min-width: 18px;
+    min-height: 18px;
+    padding: 0;
+    margin-left: 4px;
+    opacity: 0.6;
+}
+
+.app-tab-close:hover {
+    background: rgba(247, 118, 142, 0.2);
+    color: @danger;
+    opacity: 1;
+}
+
+/* Add App button */
+.add-app-btn {
+    background: rgba(41, 46, 66, 0.2);
+    border: 1px dashed rgba(122, 162, 247, 0.3);
+    border-radius: 7px;
+    color: @accent;
+    font-size: 15px;
+    min-width: 30px;
+    min-height: 28px;
+    padding: 0 7px;
+    margin: 3px;
+}
+
+.add-app-btn:hover {
+    background: rgba(122, 162, 247, 0.15);
+    border-style: solid;
+    border-color: @accent;
+    color: @tertiary;
+}
+
+/* Workspace navigation buttons (Notes, Plans, Tasks, Terminal) */
+.action-btn {
+    background: rgba(41, 46, 66, 0.3);
+    border: 1px solid rgba(122, 162, 247, 0.15);
+    border-radius: 7px;
+    color: @text_dim;
+    font-size: 12px;
+    min-width: 30px;
+    min-height: 28px;
+    padding: 0 7px;
+    margin: 3px 2px;
+    transition: all 200ms ease;
+}
+
+.action-btn:hover {
+    background: rgba(122, 162, 247, 0.15);
+    border-color: @accent;
+    color: @text_main;
+}
+
+/* Empty state */
+.empty-state {
+    background-color: #1a1b26;
+}
+
+.empty-icon {
+    color: #292e42;
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.empty-title {
+    color: #565f89;
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.empty-subtitle {
+    color: #3b4261;
+    font-size: 13px;
+    margin-bottom: 24px;
+}
+
+.empty-action button {
+    background: linear-gradient(135deg, #7aa2f7, #7dcfff);
+    color: #1a1b26;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 13px;
+}
+
+.empty-action button:hover {
+    background: linear-gradient(135deg, #89b4fa, #89dcff);
+}
+
+/* ============================================
+   Dialogs
+   ============================================ */
+
+.dialog-content {
+    background: #171924;
+    border: 1px solid rgba(122, 162, 247, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: none;
+}
+
+.dialog-content label {
+    color: #c0caf5;
+    font-size: 13px;
+}
+
+.dialog-content entry {
+    background-color: #24283b;
+    color: #c0caf5;
+    border: 1px solid #3b4261;
+    border-radius: 8px;
+    padding: 7px 10px;
+    min-height: 28px;
+    caret-color: #7aa2f7;
+    transition: all 200ms ease;
+}
+
+.dialog-content entry:focus {
+    border-color: #7aa2f7;
+    background-color: #292e42;
+    box-shadow: 0 0 0 2px rgba(122, 162, 247, 0.18);
+}
+
+.error-label {
+    color: @danger;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* Radio buttons and checkboxes in dialogs */
+.dialog-content radio, .dialog-content check {
+    color: #c0caf5;
+    margin: 6px 0;
+}
+
+.dialog-content radio:hover, .dialog-content check:hover {
+    color: #ffffff;
+}
+
+/* Color chooser buttons */
+.color-btn {
+    min-width: 28px;
+    min-height: 28px;
+    border-radius: 14px;
+    border: 2px solid transparent;
+    padding: 0;
+    margin: 2px;
+}
+
+.color-btn:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.color-btn-selected {
+    border-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(122, 162, 247, 0.5);
+}
+
+/* App selection dialog specific */
+.app-select-combo {
+    background: #24283b;
+    border: 1px solid #3b4261;
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.custom-row-box {
+    background: rgba(22, 22, 30, 0.5);
+    border: 1px solid #292e42;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 8px;
+}
+
+.custom-row-title {
+    color: #7aa2f7;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+/* ============================================
+   Scrollbar styling
+   ============================================ */
+
+scrollbar {
+    background: transparent;
+}
+
+scrollbar slider {
+    background-color: #292e42;
+    border-radius: 10px;
+    min-width: 6px;
+    min-height: 30px;
+}
+
+scrollbar slider:hover {
+    background-color: #3b4261;
+}
+
+/* ============================================
+   Tooltips
+   ============================================ */
+
+tooltip {
+    background-color: #1a1b26;
+    border: 1px solid #292e42;
+    border-radius: 6px;
+    color: #c0caf5;
+    padding: 4px 8px;
+}
+
+/* ============================================
+   Context Menus
+   ============================================ */
+
+menu {
+    background-color: #1a1b26;
+    border: 1px solid #292e42;
+    border-radius: 8px;
+    padding: 6px;
+}
+
+menu menuitem {
+    padding: 8px 12px;
+    border-radius: 4px;
+    color: #c0caf5;
+}
+
+menu menuitem:hover {
+    background: #292e42;
+}
+
+menu .menu-item-danger {
+    color: #f7768e;
+}
+
+menu .menu-item-danger:hover {
+    background: rgba(247, 118, 142, 0.15);
+    color: #ff9e9e;
+}
+
+menu separator {
+    background: #292e42;
+    margin: 4px 8px;
+    min-height: 1px;
+}
+
+/* ============================================
+   Sidebar action bar (Start All / Stop All / New Group)
+   ============================================ */
+
+.sidebar-action-bar {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(122, 162, 247, 0.1);
+    background: rgba(22, 22, 30, 0.4);
+}
+
+.sidebar-action-btn {
+    background: rgba(41, 46, 66, 0.2);
+    border: 1px solid rgba(122, 162, 247, 0.15);
+    border-radius: 8px;
+    color: @text_dim;
+    font-size: 11px;
+    font-weight: 700;
+    min-height: 28px;
+    padding: 4px 10px;
+    transition: all 200ms ease;
+}
+
+.sidebar-action-btn:hover {
+    background: rgba(122, 162, 247, 0.1);
+    border-color: @accent;
+    color: @text_main;
+}
+
+/* ============================================
+   Group rows
+   ============================================ */
+
+.session-list row.group-row {
+    background: linear-gradient(135deg, rgba(30, 32, 48, 0.6), rgba(22, 22, 30, 0.4));
+    border: 1px solid rgba(122, 162, 247, 0.2);
+    border-radius: 14px;
+    padding: 0;
+    margin: 16px 0 6px 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.session-list row.group-row:hover {
+    background: linear-gradient(135deg, rgba(35, 38, 58, 0.7), rgba(26, 27, 38, 0.5));
+    border-color: rgba(122, 162, 247, 0.4);
+}
+
+.session-list row.group-row:selected {
+    background: linear-gradient(135deg, rgba(122, 162, 247, 0.2), rgba(187, 154, 247, 0.1));
+    border-color: @accent;
+}
+
+.group-item {
+    padding: 10px 16px;
+    border-radius: 14px;
+}
+
+.group-name {
+    color: @accent;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-shadow: 0 0 8px rgba(122, 162, 247, 0.2);
+}
+
+.group-count {
+    color: @tertiary;
+    font-size: 11px;
+    margin-top: 2px;
+    font-weight: 700;
+    opacity: 0.8;
+}
+
+.group-indicator {
+    min-width: 6px;
+    min-height: 36px;
+    border-radius: 4px;
+    margin-right: 16px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.group-toggle-btn {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: @text_dim;
+    font-size: 10px;
+    min-width: 26px;
+    min-height: 26px;
+    padding: 0;
+}
+
+.group-toggle-btn:hover {
+    background: rgba(122, 162, 247, 0.15);
+    color: @text_main;
+}
+
+/* ============================================
+   Drag handle
+   ============================================ */
+
+.drag-handle {
+    color: #2c3050;
+    font-size: 12px;
+    padding: 0 2px;
+    transition: color 150ms ease;
+}
+
+.session-list row:hover .drag-handle {
+    color: #3b4261;
+}
+
+/* ============================================
+   Timers & Widgets
+   ============================================ */
+
+
+
+/* ============================================
+   DnD drop indicators */
+.dnd-drop-above,
+row.note-row.dnd-drop-above,
+row.session-row.dnd-drop-above {
+    border-top: 2px solid #7aa2f7;
+    background: rgba(122, 162, 247, 0.05);
+}
+
+.dnd-drop-below,
+row.note-row.dnd-drop-below,
+row.session-row.dnd-drop-below {
+    border-bottom: 2px solid #7aa2f7;
+    background: rgba(122, 162, 247, 0.05);
+}
+
+.dnd-drop-before {
+    border-left: 2px solid #7aa2f7;
+}
+
+.dnd-drop-after {
+    border-right: 2px solid #7aa2f7;
+}
+
+/* ============================================
+   Indented session row (belongs to a group)
+   ============================================ */
+
+.session-row-indented .session-item {
+    /* The 14 px indent spacer is applied via widget, CSS is for optional styling */
+    border-left: 1px solid #292e42;
+}
+
+/* ============================================
+   Notes & Plans dialog
+   ============================================ */
+
+.notes-root {
+    background: #1a1b26;
+}
+
+.notes-add-bar {
+    padding: 12px;
+    background: #16161e;
+}
+
+/* Scrolled window that wraps the add TextView */
+.notes-add-scroll {
+    border: 1px solid #292e42;
+    border-radius: 6px;
+    background: #24283b;
+}
+
+.notes-add-scroll:focus-within {
+    border-color: #7aa2f7;
+}
+
+/* The add TextView itself */
+.notes-add-view {
+    background: #24283b;
+    color: #c0caf5;
+    font-size: 13px;
+    padding: 6px 8px;
+}
+
+/* Floating placeholder rendered via Gtk.Overlay */
+.notes-add-placeholder {
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+.notes-list {
+    background: #1a1b26;
+}
+
+.notes-list row.note-row {
+    background: transparent;
+    border-bottom: 1px solid #1e2030;
+    padding: 0;
+}
+
+.notes-list row.note-row:hover {
+    background: #1e2030;
+}
+
+.notes-list row.note-row:selected,
+.notes-list row.note-row:selected:hover {
+    background: #292e42;
+}
+
+.note-item {
+    padding: 8px 12px;
+}
+
+/* Drag handle inside each note row */
+.note-drag-handle {
+    color: #3b4261;
+    font-size: 14px;
+    padding: 0 4px;
+    opacity: 0.6;
+}
+
+.notes-list row.note-row:hover .note-drag-handle {
+    color: #565f89;
+    opacity: 1.0;
+    background: rgba(122, 162, 247, 0.1);
+    border-radius: 4px;
+}
+
+row.row-dragging {
+    opacity: 0.4;
+}
+
+/* Status badge buttons */
+.note-status-btn {
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 94px;
+    border: none;
+    box-shadow: none;
+}
+
+.note-status-waiting {
+    background: rgba(86, 95, 137, 0.25);
+    color: #9aa5ce;
+}
+
+.note-status-waiting:hover {
+    background: rgba(86, 95, 137, 0.42);
+}
+
+.note-status-working {
+    background: rgba(224, 175, 104, 0.2);
+    color: #e0af68;
+}
+
+.note-status-working:hover {
+    background: rgba(224, 175, 104, 0.38);
+}
+
+.note-status-done {
+    background: rgba(158, 206, 106, 0.2);
+    color: #9ece6a;
+}
+
+.note-status-done:hover {
+    background: rgba(158, 206, 106, 0.38);
+}
+
+.note-text {
+    color: #c0caf5;
+    font-size: 13px;
+    padding: 0 8px;
+}
+
+.notes-list row.note-row:selected .note-text {
+    color: #ffffff;
+}
+
+/* Action buttons: copy, edit, delete */
+.note-action-btn {
+    color: #3b4261;
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 13px;
+    min-width: 0;
+    min-height: 0;
+    border: none;
+    box-shadow: none;
+}
+
+.note-action-btn:hover {
+    color: #c0caf5;
+    background: rgba(122, 162, 247, 0.15);
+}
+
+/* Empty state */
+.notes-empty {
+    color: #3b4261;
+    font-size: 13px;
+    padding: 48px;
+}
+
+/* Bottom close bar */
+.notes-btn-bar {
+    padding: 8px 12px;
+    background: #16161e;
+}
+
+/* Text view inside the edit sub-dialog */
+.note-edit-view {
+    background: #24283b;
+    color: #c0caf5;
+    font-size: 13px;
+    padding: 8px;
+}
+
+/* ==========================================================================
+   Tier 3 Polish & UX Styles
+   ========================================================================== */
+
+/* Toast Notifications */
+.toast-stack {
+    background: transparent;
+}
+
+.toast {
+    background: #1f2335;
+    color: #c0caf5;
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border: 1px solid #292e42;
+    margin-top: 8px;
+}
+
+.toast-msg {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.toast-icon {
+    font-size: 16px;
+    margin-right: 4px;
+}
+
+.toast-action-btn {
+    font-size: 13px;
+    font-weight: bold;
+    padding: 4px 12px;
+    border-radius: 4px;
+    background: rgba(122, 162, 247, 0.15);
+    color: #7aa2f7;
+    margin-left: 8px;
+}
+
+.toast-action-btn:hover {
+    background: rgba(122, 162, 247, 0.3);
+}
+
+.toast-close-btn {
+    font-size: 12px;
+    color: #565f89;
+    padding: 2px 4px;
+    border-radius: 4px;
+    margin-left: 4px;
+}
+
+.toast-close-btn:hover {
+    color: #c0caf5;
+    background: #292e42;
+}
+
+.toast-success .toast-icon { color: #9ece6a; }
+.toast-success { border-left: 4px solid #9ece6a; }
+
+.toast-error .toast-icon { color: #f7768e; }
+.toast-error { border-left: 4px solid #f7768e; }
+
+.toast-warning .toast-icon { color: #e0af68; }
+.toast-warning { border-left: 4px solid #e0af68; }
+
+.toast-info .toast-icon { color: #7aa2f7; }
+.toast-info { border-left: 4px solid #7aa2f7; }
+
+.toast-crash .toast-icon { color: #ff9e64; }
+.toast-crash { border-left: 4px solid #ff9e64; }
+
+/* Sidebar Search Bar */
+.sidebar-search-bar {
+    padding: 8px 12px;
+    background: #16161e;
+    border-bottom: 1px solid #1a1b26;
+}
+
+.search-icon {
+    color: #565f89;
+    font-size: 12px;
+}
+
+.sidebar-search-entry {
+    background: #1f2335;
+    color: #c0caf5;
+    border: 1px solid #292e42;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 13px;
+    min-height: 28px;
+}
+
+.sidebar-search-entry:focus {
+    border-color: #7aa2f7;
+    box-shadow: 0 0 0 1px rgba(122, 162, 247, 0.3);
+}
+
+.search-clear-btn {
+    color: #565f89;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.search-clear-btn:hover {
+    color: #c0caf5;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Tag Chips */
+.tag-chip {
+    background: #292e42;
+    color: #9aa5ce;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-right: 4px;
+}
+
+/* Split View Paned */
+.split-paned separator {
+    background-color: #16161e;
+    min-width: 4px;
+    min-height: 4px;
+}
+
+.split-paned separator:hover {
+    background-color: #3b4261;
+}
+
+/* ============================================
+   General Timer Widget
+   ============================================ */
+
+.general-timer-widget {
+    background: rgba(30, 32, 48, 0.6);
+    border: 1px solid #292e42;
+    border-radius: 8px;
+    padding: 2px 8px;
+    margin: 0 4px;
+}
+
+.general-timer-time {
+    color: #c0caf5;
+    font-size: 13px;
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.general-timer-goal {
+    color: #7aa2f7;
+    font-size: 10px;
+    margin-right: 4px;
+}
+
+.general-timer-btn {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: #565f89;
+    font-size: 12px;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
+    transition: all 150ms ease;
+}
+
+.general-timer-btn:hover {
+    background: rgba(122, 162, 247, 0.15);
+    color: #c0caf5;
+}
+
+/* ============================================
+   Pomodoro Timer Widget
+   ============================================ */
+
+.pomodoro-widget {
+    background: rgba(30, 32, 48, 0.6);
+    border: 1px solid #292e42;
+    border-radius: 8px;
+    padding: 2px 8px;
+    margin: 0 4px;
+}
+
+.pomodoro-phase {
+    color: #565f89;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.pomodoro-time {
+    color: #c0caf5;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    letter-spacing: 1px;
+    margin: 0 4px;
+}
+
+.pomodoro-cycle {
+    color: #565f89;
+    font-size: 10px;
+    margin-right: 4px;
+}
+
+.pomodoro-btn {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: #565f89;
+    font-size: 12px;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
+    transition: all 150ms ease;
+}
+
+.pomodoro-btn:hover {
+    background: rgba(122, 162, 247, 0.15);
+    color: #c0caf5;
+}
+
+/* Phase-specific accents */
+.pomodoro-work {
+    border-color: rgba(247, 118, 142, 0.3);
+}
+
+.pomodoro-work .pomodoro-time {
+    color: #f7768e;
+}
+
+.pomodoro-break {
+    border-color: rgba(158, 206, 106, 0.3);
+}
+
+.pomodoro-break .pomodoro-time {
+    color: #9ece6a;
+}
+
+.pomodoro-long-break {
+    border-color: rgba(125, 207, 255, 0.3);
+}
+
+.pomodoro-long-break .pomodoro-time {
+    color: #7dcfff;
+}
+
+.pomodoro-paused {
+    border-color: rgba(224, 175, 104, 0.3);
+}
+
+.pomodoro-paused .pomodoro-time {
+    color: #e0af68;
+}
