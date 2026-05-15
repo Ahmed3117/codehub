@@ -479,6 +479,12 @@ class CodeHubApp(Gtk.Application):
         self.sidebar.on_open_tasks = self._on_open_tasks
         self.sidebar.on_show_details = self._on_show_session_details
         self.sidebar.show_hidden_btn.connect("toggled", lambda btn: self._on_toggle_show_hidden())
+        
+        self.sidebar.compact_btn.connect("toggled", self._on_sidebar_compact_toggled)
+        
+        is_compact = self.settings.get("sidebar_compact", False)
+        self.sidebar.compact_btn.set_active(is_compact)
+        self._sidebar_visible = True
 
         # ListBox signals
         self.sidebar.listbox.connect("row-selected", self._on_session_selected)
@@ -500,6 +506,34 @@ class CodeHubApp(Gtk.Application):
         # Window events
         self.window.connect("delete-event", self._on_delete)
         self.window.connect("configure-event", self._on_configure)
+        self.window.add_events(Gdk.EventMask.FOCUS_CHANGE_MASK)
+        self.window.connect("focus-in-event", self._on_window_focus_in)
+
+    def _on_window_focus_in(self, widget, event):
+        """Wake up the embedded window when CodeHub regains focus."""
+        if not self._active_session_id:
+            return False
+            
+        workspace = self._workspaces.get(self._active_session_id)
+        if not workspace:
+            return False
+            
+        app_id = workspace.get_active_app_id()
+        if not app_id:
+            return False
+            
+        slot_key = self._active_session_id if app_id == "editor" else f"{self._active_session_id}:{app_id}"
+        
+        # Short delay lets the GTK window finish mapping before we bump the X11 plug
+        GLib.timeout_add(50, self._wake_up_embedded, slot_key)
+        return False
+
+    def _wake_up_embedded(self, slot_key: str):
+        xid = self.embedding_mgr.get_xid(slot_key)
+        if xid:
+            self.embedding_mgr._force_coordinate_refresh(slot_key, xid)
+            self.embedding_mgr.focus_embedded(slot_key)
+        return False
 
     def _on_modes_settings(self):
         """Open the Modes configuration dialog."""
@@ -507,6 +541,15 @@ class CodeHubApp(Gtk.Application):
         if dialog.run() == Gtk.ResponseType.OK:
             dialog.save_settings()
         dialog.destroy()
+
+    def _on_sidebar_compact_toggled(self, btn):
+        compact = btn.get_active()
+        self.settings["sidebar_compact"] = compact
+        if compact:
+            self.paned.set_position(56)
+        else:
+            self.paned.set_position(self.settings.get("sidebar_width", 280))
+        self._save_settings()
 
     def _on_mode_state_changed(self):
         """Called when ModeManager changes which sessions are active/allowed."""
@@ -801,13 +844,17 @@ class CodeHubApp(Gtk.Application):
     def _on_toggle_sidebar(self):
         """Show or hide the sidebar panel."""
         if self._sidebar_visible:
-            self._saved_sidebar_width = self.paned.get_position()
-            self.settings["sidebar_width"] = self._saved_sidebar_width
+            if not self.sidebar.compact_btn.get_active():
+                self._saved_sidebar_width = self.paned.get_position()
+                self.settings["sidebar_width"] = self._saved_sidebar_width
             self.sidebar.hide()
             self._sidebar_visible = False
         else:
             self.sidebar.show_all()
-            self.paned.set_position(self.settings.get("sidebar_width", 280))
+            if self.sidebar.compact_btn.get_active():
+                self.paned.set_position(200)
+            else:
+                self.paned.set_position(self.settings.get("sidebar_width", 280))
             self._sidebar_visible = True
 
     # =========================================
@@ -4244,8 +4291,8 @@ class CodeHubApp(Gtk.Application):
             self.settings["window_x"] = event.x
             self.settings["window_y"] = event.y
         self.settings["window_maximized"] = window.is_maximized()
-        # Only save sidebar width when the sidebar is actually visible
-        if self._sidebar_visible:
+        # Only save sidebar width when visible and NOT in compact mode (avoid corrupting real width)
+        if self._sidebar_visible and not self.sidebar.compact_btn.get_active():
             self.settings["sidebar_width"] = self.paned.get_position()
 
     def _on_delete(self, window, event):

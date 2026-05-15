@@ -88,18 +88,18 @@ class SessionRow(Gtk.ListBoxRow):
         vbox.pack_start(self.editor_label, False, False, 0)
 
         # Status Box
-        status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        self.status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         
         self.status_label = Gtk.Label(xalign=0)
         self.status_label.get_style_context().add_class("session-status")
-        status_box.pack_start(self.status_label, False, False, 0)
+        self.status_box.pack_start(self.status_label, False, False, 0)
         
         self.uptime_badge = Gtk.Label()
         self.uptime_badge.get_style_context().add_class("dim-label")
         self.uptime_badge.set_markup("<small></small>")
-        status_box.pack_start(self.uptime_badge, False, False, 0)
+        self.status_box.pack_start(self.uptime_badge, False, False, 0)
 
-        vbox.pack_start(status_box, False, False, 4)
+        vbox.pack_start(self.status_box, False, False, 4)
 
         # Apps Icons Box
         self.apps_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
@@ -176,6 +176,8 @@ class SessionRow(Gtk.ListBoxRow):
         self._uptime_timer_id = None
         self.connect("destroy", self._on_destroy)
 
+        self._compact = False
+
         self.update_status(session.state)
         self.update_notes_badge()
         self._render_tags(session)
@@ -192,7 +194,19 @@ class SessionRow(Gtk.ListBoxRow):
         self.action_btn.connect("clicked", self._on_action_clicked)
         self.details_btn.connect("clicked", self._on_details_clicked)
 
-
+    def set_compact_mode(self, compact: bool):
+        self._compact = compact
+        self.path_label.set_visible(not compact)
+        self.editor_label.set_visible(not compact)
+        self.status_box.set_visible(not compact)
+        self.action_btn.set_visible(not compact)
+        self.action_box.set_visible(not compact)
+        if compact:
+            self.apps_box.hide()
+            self.tags_box.hide()
+        else:
+            self._render_app_icons()
+            self._render_tags(self.session)
 
     def _on_details_clicked(self, button):
         """Show a popover with detailed session information."""
@@ -402,7 +416,7 @@ class SessionRow(Gtk.ListBoxRow):
         for child in self.apps_box.get_children():
             self.apps_box.remove(child)
 
-        if self.session.state in (STATE_IDLE, STATE_CLOSED, STATE_FAILED):
+        if self._compact or self.session.state in (STATE_IDLE, STATE_CLOSED, STATE_FAILED):
             self.apps_box.hide()
             return
             
@@ -437,7 +451,7 @@ class SessionRow(Gtk.ListBoxRow):
         goal = getattr(self.session, "goal_time_seconds", 0)
 
         is_running = self.session.state in (STATE_EMBEDDED, STATE_EXTERNAL, STATE_STARTING, STATE_DISCOVERING, STATE_EMBEDDING)
-        timer_running = is_running and start_time and not paused
+        timer_running = is_running and bool(start_time) and not paused
 
         # Display time_since_reset as the primary metric (plus current tick if timer is running)
         display_time = time_since_reset
@@ -462,9 +476,13 @@ class SessionRow(Gtk.ListBoxRow):
             parts.append("⏸")
         if text:
             parts.append(f"🕒 {text}")
-        if goal > 0 and display_time > 0:
-            pct = min(100, int(display_time / goal * 100))
-            parts.append(f"({pct}%)")
+        if goal > 0:
+            goal_str = self._fmt_duration(goal)
+            if display_time > 0:
+                pct = min(100, int(display_time / goal * 100))
+                parts.append(f"/ {goal_str} ({pct}%)")
+            else:
+                parts.append(f"/ {goal_str}")
 
         color = "" if timer_running else ' alpha="50%"'
         markup = f"<span{color}><small>{'  '.join(parts)}</small></span>" if parts else ""
@@ -488,7 +506,7 @@ class SessionRow(Gtk.ListBoxRow):
         for child in self.tags_box.get_children():
             self.tags_box.remove(child)
         tags = getattr(session, "tags", [])
-        if not tags:
+        if self._compact or not tags:
             self.tags_box.hide()
             return
         self.tags_box.show()
@@ -653,7 +671,12 @@ class Sidebar(Gtk.Box):
 
         self.count_label = Gtk.Label(label="0")
         self.count_label.get_style_context().add_class("sidebar-count")
-        header.pack_end(self.count_label, False, False, 0)
+        header.pack_end(self.count_label, False, False, 4)
+
+        self.compact_btn = Gtk.ToggleButton(label="☰")
+        self.compact_btn.set_tooltip_text("Compact Mode (icons only)")
+        self.compact_btn.set_relief(Gtk.ReliefStyle.NONE)
+        header.pack_end(self.compact_btn, False, False, 2)
 
         self.pack_start(header, False, False, 0)
 
@@ -679,33 +702,67 @@ class Sidebar(Gtk.Box):
         clear_btn.connect("clicked", lambda _: self.search_entry.set_text(""))
         search_box.pack_start(clear_btn, False, False, 0)
 
+        self.search_box = search_box
         self.pack_start(search_box, False, False, 0)
 
-        # ── Action bar (Start All / Stop All / New Group) ─────────────
-        action_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        action_bar.get_style_context().add_class("sidebar-action-bar")
+        # ── Action bar ───────────────────────────────────────────────
+        # Normal action bar (full labels) — hidden in compact mode
+        self.action_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        self.action_bar.get_style_context().add_class("sidebar-action-bar")
 
         self.start_all_btn = Gtk.Button(label="▶ All")
         self.start_all_btn.set_tooltip_text("Start all idle sessions")
         self.start_all_btn.get_style_context().add_class("sidebar-action-btn")
-        action_bar.pack_start(self.start_all_btn, True, True, 0)
+        self.action_bar.pack_start(self.start_all_btn, True, True, 0)
 
         self.stop_all_btn = Gtk.Button(label="■ All")
         self.stop_all_btn.set_tooltip_text("Stop all running sessions")
         self.stop_all_btn.get_style_context().add_class("sidebar-action-btn")
-        action_bar.pack_start(self.stop_all_btn, True, True, 0)
+        self.action_bar.pack_start(self.stop_all_btn, True, True, 0)
 
         self.new_group_btn = Gtk.Button(label="＋ Group")
         self.new_group_btn.set_tooltip_text("Create a new group")
         self.new_group_btn.get_style_context().add_class("sidebar-action-btn")
-        action_bar.pack_start(self.new_group_btn, True, True, 0)
+        self.action_bar.pack_start(self.new_group_btn, True, True, 0)
 
         self.show_hidden_btn = Gtk.ToggleButton(label="👁 Hidden")
-        self.show_hidden_btn.set_tooltip_text("Show/hide hidden sessions")
+        self.show_hidden_btn.set_tooltip_text("Show hidden sessions")
         self.show_hidden_btn.get_style_context().add_class("sidebar-action-btn")
-        action_bar.pack_start(self.show_hidden_btn, True, True, 0)
+        self.action_bar.pack_start(self.show_hidden_btn, True, True, 0)
 
-        self.pack_start(action_bar, False, False, 0)
+        self.active_only_btn = Gtk.ToggleButton(label="🟢 Active")
+        self.active_only_btn.set_tooltip_text("Show only active/running sessions")
+        self.active_only_btn.get_style_context().add_class("sidebar-action-btn")
+        self.action_bar.pack_start(self.active_only_btn, True, True, 0)
+
+        self.pack_start(self.action_bar, False, False, 0)
+
+        # ── Compact action bar (icon-only vertical strip) ─────────────
+        # Shown in compact mode instead of the normal action bar
+        self.compact_bar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        self.compact_bar.get_style_context().add_class("sidebar-compact-bar")
+        self.compact_bar.set_no_show_all(True)
+        self.compact_bar.hide()
+
+        def _make_icon_btn(icon, tooltip, toggle=False):
+            btn = Gtk.ToggleButton() if toggle else Gtk.Button()
+            btn.set_label(icon)
+            btn.set_tooltip_text(tooltip)
+            btn.set_relief(Gtk.ReliefStyle.NONE)
+            btn.get_style_context().add_class("compact-icon-btn")
+            return btn
+
+        self._ci_start  = _make_icon_btn("▶", "Start all idle sessions")
+        self._ci_stop   = _make_icon_btn("■", "Stop all running sessions")
+        self._ci_group  = _make_icon_btn("＋", "Create a new group")
+        self._ci_hidden = _make_icon_btn("👁", "Show hidden sessions", toggle=True)
+        self._ci_active = _make_icon_btn("🟢", "Show only active sessions", toggle=True)
+
+        for w in (self._ci_start, self._ci_stop, self._ci_group,
+                  self._ci_hidden, self._ci_active):
+            self.compact_bar.pack_start(w, False, False, 0)
+
+        self.pack_start(self.compact_bar, False, False, 0)
 
         # ── Scrolled ListBox ──────────────────────────────────────────
         scrolled = Gtk.ScrolledWindow()
@@ -756,10 +813,56 @@ class Sidebar(Gtk.Box):
         self.on_open_tasks: Optional[Callable] = None
         self.on_show_details: Optional[Callable] = None
 
-        # Wire action bar
+        # Wire action bar (both normal and compact icon buttons share the same callbacks)
         self.start_all_btn.connect("clicked", lambda _: self.on_start_all and self.on_start_all())
         self.stop_all_btn.connect("clicked",  lambda _: self.on_stop_all  and self.on_stop_all())
         self.new_group_btn.connect("clicked", lambda _: self.on_new_group and self.on_new_group())
+        
+        self._ci_start.connect("clicked",  lambda _: self.on_start_all and self.on_start_all())
+        self._ci_stop.connect("clicked",   lambda _: self.on_stop_all  and self.on_stop_all())
+        self._ci_group.connect("clicked",  lambda _: self.on_new_group and self.on_new_group())
+
+        # Keep compact icon toggles in sync with normal toggles
+        self.show_hidden_btn.connect("toggled", self._sync_hidden_from_normal)
+        self._ci_hidden.connect("toggled", self._sync_hidden_from_compact)
+        self.active_only_btn.connect("toggled", self._sync_active_from_normal)
+        self._ci_active.connect("toggled", self._sync_active_from_compact)
+
+        self.compact_btn.connect("toggled", self._on_compact_toggled)
+
+    def _sync_hidden_from_normal(self, btn):
+        if self._ci_hidden.get_active() != btn.get_active():
+            self._ci_hidden.set_active(btn.get_active())
+        self.listbox.invalidate_filter()
+
+    def _sync_hidden_from_compact(self, btn):
+        if self.show_hidden_btn.get_active() != btn.get_active():
+            self.show_hidden_btn.set_active(btn.get_active())
+
+    def _sync_active_from_normal(self, btn):
+        if self._ci_active.get_active() != btn.get_active():
+            self._ci_active.set_active(btn.get_active())
+        self.listbox.invalidate_filter()
+
+    def _sync_active_from_compact(self, btn):
+        if self.active_only_btn.get_active() != btn.get_active():
+            self.active_only_btn.set_active(btn.get_active())
+
+    def _on_compact_toggled(self, btn):
+        compact = btn.get_active()
+        for row in self.listbox.get_children():
+            if isinstance(row, SessionRow):
+                row.set_compact_mode(compact)
+        if compact:
+            self.set_size_request(52, -1)
+            self.search_box.hide()
+            self.action_bar.hide()
+            self.compact_bar.show_all()
+        else:
+            self.set_size_request(SIDEBAR_WIDTH, -1)
+            self.search_box.show()
+            self.action_bar.show()
+            self.compact_bar.hide()
 
     # ── Search / filter ───────────────────────────────────────────────
 
@@ -771,10 +874,25 @@ class Sidebar(Gtk.Box):
     def _filter_row(self, row: Gtk.ListBoxRow) -> bool:
         """Return True to show the row, False to hide it."""
         show_hidden = self.show_hidden_btn.get_active()
+        active_only = self.active_only_btn.get_active()
 
         if isinstance(row, SessionRow):
             s = row.session
-            # If session is hidden and we are not showing hidden, hide it immediately
+
+            # In active-only mode: hide inactive sessions
+            if active_only:
+                if s.state in (STATE_IDLE, STATE_CLOSED, STATE_FAILED):
+                    return False
+                # Active sessions belonging to a collapsed group still show
+                # (they appear ungrouped / flat when group header is hidden)
+            else:
+                # Normal mode: respect group collapse
+                if s.group_id:
+                    grow = self._rows.get(s.group_id)
+                    if isinstance(grow, GroupRow) and grow.group.collapsed:
+                        return False
+
+            # Hide hidden sessions unless toggled on
             if getattr(s, "hidden", False) and not show_hidden:
                 return False
 
@@ -782,7 +900,6 @@ class Sidebar(Gtk.Box):
                 return True
 
             needle = self._filter_text
-            # Match against name, path, editor, and tags
             haystack = " ".join([
                 s.name.lower(),
                 s.project_path.lower(),
@@ -792,7 +909,10 @@ class Sidebar(Gtk.Box):
 
         if isinstance(row, GroupRow):
             g = row.group
-            # If group is hidden and we are not showing hidden, hide it
+            # In active-only mode, hide all group headers (sessions appear flat)
+            if active_only:
+                return False
+            # Hide hidden groups
             if getattr(g, "hidden", False) and not show_hidden:
                 return False
             return True
@@ -853,11 +973,6 @@ class Sidebar(Gtk.Box):
 
         self.show_all()
         self.listbox.invalidate_filter()
-        # Re-apply collapsed state (show_all would reveal them)
-        for g in groups:
-            if g.collapsed:
-                self.set_group_sessions_visible(g.id, False)
-
         self._update_count()
 
     # ──────────────────────────────────────────────────────────────────
@@ -866,6 +981,7 @@ class Sidebar(Gtk.Box):
 
     def _add_session_row(self, session: Session, indent: bool) -> SessionRow:
         row = SessionRow(session, indent=indent)
+        row.set_compact_mode(self.compact_btn.get_active())
         self._wire_session_row(row)
         self.listbox.add(row)
         self._rows[session.id] = row
@@ -960,10 +1076,8 @@ class Sidebar(Gtk.Box):
                 row.update_count(session_count)
 
     def set_group_sessions_visible(self, group_id: str, visible: bool):
-        """Show or hide all session rows that belong to *group_id*."""
-        for row in self._rows.values():
-            if isinstance(row, SessionRow) and row.session.group_id == group_id:
-                row.set_visible(visible)
+        """Request a filter update to show/hide session rows in group."""
+        self.listbox.invalidate_filter()
 
     def select_session(self, session_id: str):
         row = self._rows.get(session_id)
